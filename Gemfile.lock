@@ -1,5 +1,6 @@
-PATH
-  remote: /home/agrare/workspace/redhat/manageiq-providers-inventory
+GIT
+  remote: https://github.com/agrare/manageiq-providers-inventory
+  revision: 7f17698fbe155a4babfb88c144523f7f093bc9ee
   specs:
     manageiq-providers-inventory (0.0.1)
       activesupport (>= 5.0, < 5.1)

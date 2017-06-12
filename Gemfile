@@ -2,4 +2,4 @@ source 'https://rubygems.org'
 
 gem "trollop"
 gem "rbvmomi"
-gem "manageiq-providers-inventory", :path => File.expand_path("../manageiq-providers-inventory", __dir__)
+gem "manageiq-providers-inventory", :git => "https://github.com/agrare/manageiq-providers-inventory"
