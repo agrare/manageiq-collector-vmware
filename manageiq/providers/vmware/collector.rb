@@ -1,8 +1,7 @@
+require 'yaml'
 require 'rbvmomi/vim'
-
-require 'manageiq/providers/inventory'
+require 'manageiq/providers/vmware/parser'
 require 'manageiq/providers/vmware/collector/connection'
-require 'manageiq/providers/vmware/collector/inventory_collections'
 require 'manageiq/providers/vmware/collector/property_collector'
 
 module ManageIQ
@@ -10,13 +9,14 @@ module ManageIQ
     module Vmware
       class Collector
         include Connection
-        include InventoryCollections
         include PropertyCollector
 
-        def initialize(hostname, user, password)
-          @hostname = hostname
-          @user     = user
-          @password = password
+        def initialize(ems_id, hostname, user, password)
+          @ems_id         = ems_id
+          @hostname       = hostname
+          @user           = user
+          @password       = password
+          @inventory_hash = Hash.new { |h, k| h[k] = {} }
         end
 
         def run
@@ -57,14 +57,43 @@ module ManageIQ
         end
 
         def process_update_set(object_updates)
-          object_updates.each do |object_update|
-            obj  = object_update.obj
-            kind = object_update.kind
+          parser = ManageIQ::Providers::Vmware::Parser.new(@ems_id)
 
-            puts "#{kind} #{obj.class.wsdl_name}:#{obj._ref}"
+          object_updates.each do |object_update|
+            object = object_update.obj
+            kind   = object_update.kind
+
+            case kind
+            when 'enter', 'modify'
+              update_object(object, object_update.changeSet, object_update.missingSet)
+            when 'leave'
+            end
+
+            props = @inventory_hash[object.class.wsdl_name][object._ref]
+
+            parser_method = "parse_#{object.class.wsdl_name.underscore}"
+            parser.send(parser_method, object, props) if parser.respond_to?(parser_method)
+          end
+
+          puts YAML.dump(parser.inventory)
+        end
+
+        def update_object(object, change_set, _missing_set)
+          props = @inventory_hash[object.class.wsdl_name][object._ref] ||= {}
+
+          change_set.to_a.each do |property_change|
+            case property_change.op
+            when 'add'
+            when 'assign'
+              props[property_change.name] = property_change.val
+            when 'remove', 'indirectRemove'
+            end
           end
         end
 
+        def delete_object(obj)
+          @inventory_hash[object.class.wsdl_name].except!(object._ref)
+        end
       end
     end
   end

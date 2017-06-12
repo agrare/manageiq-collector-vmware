@@ -1,8 +1,12 @@
+require 'manageiq/providers/vmware/collector/prop_set'
+
 module ManageIQ
   module Providers
     module Vmware
       class Collector
         module PropertyCollector
+          include PropSet
+
           def create_property_filter(vim)
             root_folder = vim.serviceContent.rootFolder
 
@@ -19,12 +23,13 @@ module ManageIQ
           end
 
           def prop_set
-            [
+            EmsRefreshPropMap.collect do |type, props|
               RbVmomi::VIM.PropertySpec(
-                :type    => 'ManagedEntity',
-                :pathSet => ['name', 'parent']
+                :type    => type,
+                :all     => props.nil?,
+                :pathSet => props
               )
-            ]
+            end
           end
 
           def select_set
