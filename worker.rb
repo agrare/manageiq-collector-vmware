@@ -2,7 +2,7 @@ $LOAD_PATH.unshift(".")
 
 require 'trollop'
 require 'rbvmomi'
-require 'collector'
+require 'manageiq/providers/vmware/collector'
 
 def main args
   collector = ManageIQ::Providers::Vmware::Collector.new(args[:hostname], args[:user], args[:password])
