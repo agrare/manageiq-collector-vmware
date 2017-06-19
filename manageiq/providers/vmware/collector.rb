@@ -1,3 +1,4 @@
+require 'kafka'
 require 'yaml'
 require 'rbvmomi/vim'
 require 'manageiq/providers/vmware/parser'
@@ -17,6 +18,7 @@ module ManageIQ
           @user           = user
           @password       = password
           @inventory_hash = Hash.new { |h, k| h[k] = {} }
+          @kafka          = Kafka.new(seed_brokers: ["localhost:9092"], client_id: "miq-collector")
         end
 
         def run
@@ -28,6 +30,15 @@ module ManageIQ
         end
 
         private
+
+        def kafka_inventory_producer
+          @kafka.producer
+        end
+
+        def publish_inventory(stream, inventory)
+          stream.produce(inventory, topic: "inventory")
+          stream.deliver_messages
+        end
 
         def wait_for_updates(vim)
           property_filter = create_property_filter(vim)
@@ -57,6 +68,7 @@ module ManageIQ
         end
 
         def process_update_set(object_updates)
+          inventory_stream = kafka_inventory_producer
           parser = ManageIQ::Providers::Vmware::Parser.new(@ems_id)
 
           object_updates.each do |object_update|
@@ -75,7 +87,8 @@ module ManageIQ
             parser.send(parser_method, object, props) if parser.respond_to?(parser_method)
           end
 
-          puts YAML.dump(parser.inventory)
+
+          publish_inventory(inventory_stream, parser.inventory_yaml)
         end
 
         def update_object(object, change_set, _missing_set)
