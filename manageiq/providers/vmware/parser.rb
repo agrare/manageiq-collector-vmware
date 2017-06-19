@@ -65,13 +65,49 @@ module ManageIQ
         def parse_host_system(host, props)
           return if props.nil?
 
-          hostname = props["config.network.dnsConfig.hostName"]
 
           host_hash = {
             :ems_ref   => host._ref,
-            :name      => hostname,
-            :hostname  => hostname,
           }
+
+          hostname         = props["config.network.dnsConfig.hostName"]
+          ipaddress        = nil # TODO
+          uid_ems          = nil # TODO
+          product_name     = props["summary.config.product.name"]
+          product_vendor   = props["summary.config.product.vendor"].split(",").first.to_s.downcase
+          product_build    = props["summary.config.product.build"]
+          connection_state = props["summary.runtime.connectionState"]
+          maintenance_mode = props["summary.runtime.inMaintenanceMode"]
+          power_state      = unless connection_state.nil? || maintenance_mode.nil?
+                               if connection_state != "connected"
+                                 "off"
+                               elsif maintenance_mode.to_s.downcase == "true"
+                                 "maintenance"
+                               else
+                                 "on"
+                               end
+                             end
+          admin_disabled   = props["config.adminDisabled"].to_s.downcase == "true"
+          asset_tag        = nil # TODO
+          service_tag      = nil # TODO
+          failover         = nil # TODO
+          hyperthreading   = props["config.hyperThread.active"]
+
+          host_hash[:name]             = hostname         unless hostname.nil?
+          host_hash[:hostname]         = hostname         unless hostname.nil?
+          host_hash[:ipaddress]        = ipaddress        unless ipaddress.nil?
+          host_hash[:uid_ems]          = uid_ems          unless uid_ems.nil?
+          host_hash[:vmm_vendor]       = product_vendor   unless product_vendor.nil?
+          host_hash[:vmm_product]      = product_name     unless product_name.nil?
+          host_hash[:vmm_buildnumber]  = product_build    unless product_build.nil?
+          host_hash[:connection_state] = connection_state unless connection_state.nil?
+          host_hash[:power_state]      = power_state      unless power_state.nil?
+          host_hash[:admin_disabled]   = admin_disabled   unless admin_disabled.nil?
+          host_hash[:maintenance]      = maintenance_mode unless maintenance_mode.nil?
+          host_hash[:asset_tag]        = asset_tag        unless asset_tag.nil?
+          host_hash[:service_tag]      = service_tag      unless service_tag.nil?
+          host_hash[:failover]         = failover         unless failover.nil?
+          host_hash[:hyperthreading]   = hyperthreading   unless hyperthreading.nil?
 
           hosts.build host_hash
         end
