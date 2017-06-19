@@ -25,7 +25,7 @@ module ManageIQ
             {:model_class => "EmsCluster"}.merge(defaults)
           )
 
-          collections[:datastores] = ManageIQ::Providers::Inventory::InventoryCollection.new(
+          collections[:storages] = ManageIQ::Providers::Inventory::InventoryCollection.new(
             {:model_class => "Storage"}.merge(defaults)
           )
 

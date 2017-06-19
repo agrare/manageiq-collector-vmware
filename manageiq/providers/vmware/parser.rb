@@ -49,6 +49,28 @@ module ManageIQ
 
         def parse_datastore(datastore, props)
           return if props.nil?
+
+          ds_hash = {
+            :ems_ref => datastore._ref,
+          }
+
+          name               = props["summary.name"]
+          store_type         = props["summary.type"].to_s.upcase
+          total_space        = props["summary.capacity"]
+          free_space         = props["summary.freeSpace"]
+          uncommitted        = props["summary.uncommitted"]
+          multiplehostaccess = props["summary.multipleHostAccess"]
+          location           = props["summary.url"]
+
+          ds_hash[:name]               = name               unless name.nil?
+          ds_hash[:store_type]         = store_type         unless store_type.nil?
+          ds_hash[:total_space]        = total_space        unless total_space.nil?
+          ds_hash[:free_space]         = free_space         unless free_space.nil?
+          ds_hash[:uncommitted]        = uncommitted        unless uncommitted.nil?
+          ds_hash[:multiplehostaccess] = multiplehostaccess unless multiplehostaccess.nil?
+          ds_hash[:location]           = location           unless location.nil?
+
+          datastores.build ds_hash
         end
 
         def parse_distributed_virtual_portgroup(dvp, props)
@@ -140,20 +162,24 @@ module ManageIQ
 
         private
 
-        def hosts
-          @collections[:hosts]
-        end
-
-        def vms
-          @collections[:vms]
-        end
-
         def clusters
           @collections[:ems_clusters]
         end
 
+        def datastores
+          @collections[:storages]
+        end
+
+        def hosts
+          @collections[:hosts]
+        end
+
         def templates
           @collections[:miq_templates]
+        end
+
+        def vms
+          @collections[:vms]
         end
 
         def lazy_find_host(host)
