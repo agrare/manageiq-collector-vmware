@@ -147,16 +147,86 @@ module ManageIQ
           vm_hash = {
             :ems_ref         => vm._ref,
             :vendor          => "vmware",
-            :uid_ems         => props["summary.config.uuid"],
-            :name            => props["summary.config.name"],
-            :raw_power_state => props["summary.runtime.powerState"],
-            :template        => props["summary.config.template"],
-            :location        => props["summary.config.vmPathName"],
-            :host            => lazy_find_host(props["summary.runtime.host"]),
           }
 
-          collection = vm_hash[:template] ? templates : vms
+          uid_ems          = props["summary.config.uuid"]
+          name             = props["summary.config.name"]
+          raw_power_state  = props["summary.runtime.powerState"]
+          location         = props["summary.config.vmPathName"]
+          tools_status     = props["summary.guest.toolsStatus"]
+          boot_time        = props["summary.runtime.bootTime"]
+          standby_action   = props["config.defaultPowerOps.standbyAction"]
+          connection_state = props["summary.runtime.connectionState"]
+          affinity_set     = props["config.cpuAffinity.affinitySet"]
+          cpu_affinity     = unless affinity_set.nil?
+                               if affinity_set.kind_of? Array
+                                 affinity_set.join(",")
+                               else
+                                 affinity_set.to_s
+                               end
+                             end
+          template         = props["summary.config.template"]
+          linked_clone     = nil
+          fault_tolerance  = nil
 
+          memory_reserve        = props["resourceConfig.memoryAllocation.reservation"]
+          memory_reserve_expand = props["resourceConfig.memoryAllocation.expandableReservation"]
+          memory_limit          = props["resourceConfig.memoryAllocation.limit"]
+          memory_shares         = props["resourceConfig.memoryAllocation.shares.shares"]
+          memory_shares_level   = props["resourceConfig.memoryAllocation.shares.level"]
+
+          cpu_reserve        = props["resourceConfig.cpuAllocation.reservation"]
+          cpu_reserve_expand = props["resourceConfig.cpuAllocation.expandableReservation"]
+          cpu_limit          = props["resourceConfig.cpuAllocation.limit"]
+          cpu_shares         = props["resourceConfig.cpuAllocation.shares.shares"]
+          cpu_shares_level   = props["resourceConfig.cpuAllocation.shares.limit"]
+
+          host              = lazy_find_host(props["summary.runtime.host"])
+          storages          = props["datastore"].to_a.collect { |ds| lazy_find_datastore(ds) }.compact
+          storage           = nil # TODO: requires datastore name cache
+          operating_system  = nil
+          hardware          = nil
+          custom_attributes = nil
+          snapshots         = []
+
+          cpu_hot_add_enabled       = props["config.cpuHotAddEnabled"]
+          cpu_hot_remove_enabled    = props["config.cpuHotRemoveEnabled"]
+          memory_hot_add_enabled    = props["config.memoryHotAddEnabled"]
+          memory_hot_add_limit      = props["config.hotPlugMemoryLimit"]
+          memory_hot_add_increment  = props["config.hotPlugMemoryIncrementSize"]
+
+          vm_hash[:uid_ems]          = uid_ems          unless uid_ems.nil?
+          vm_hash[:name]             = name             unless name.nil?
+          vm_hash[:raw_power_state]  = raw_power_state  unless raw_power_state.nil?
+          vm_hash[:location]         = location         unless location.nil?
+          vm_hash[:tools_status]     = tools_status     unless tools_status.nil?
+          vm_hash[:template]         = template         unless template.nil?
+          vm_hash[:boot_time]        = boot_time        unless boot_time.nil?
+          vm_hash[:standby_action]   = standby_action   unless standby_action.nil?
+          vm_hash[:connection_state] = connection_state unless connection_state.nil?
+          vm_hash[:cpu_affinity]     = cpu_affinity     unless cpu_affinity.nil?
+
+          vm_hash[:memory_reserve]        = memory_reserve        unless memory_reserve.nil?
+          vm_hash[:memory_reserve_expand] = memory_reserve_expand unless memory_reserve_expand.nil?
+          vm_hash[:memory_limit]          = memory_limit          unless memory_limit.nil?
+          vm_hash[:memory_shares]         = memory_shares         unless memory_shares.nil?
+          vm_hash[:memory_shares_level]   = memory_shares_level   unless memory_shares_level.nil?
+
+          vm_hash[:cpu_reserve]         = cpu_reserve        unless cpu_reserve.nil?
+          vm_hash[:cpu_reserve_expand]  = cpu_reserve_expand unless cpu_reserve_expand.nil?
+          vm_hash[:cpu_limit]           = cpu_limit          unless cpu_limit.nil?
+          vm_hash[:cpu_shares]          = cpu_shares         unless cpu_shares.nil?
+          vm_hash[:cpu_shares_level]    = cpu_shares_level   unless cpu_shares_level.nil?
+
+          vm_hash[:host]            = host            unless host.nil?
+
+          vm_hash[:cpu_hot_add_enabled]      = cpu_hot_add_enabled      unless cpu_hot_add_enabled.nil?
+          vm_hash[:cpu_hot_remove_enabled]   = cpu_hot_remove_enabled   unless cpu_hot_remove_enabled.nil?
+          vm_hash[:memory_hot_add_enabled]   = memory_hot_add_enabled   unless memory_hot_add_enabled.nil?
+          vm_hash[:memory_hot_add_limit]     = memory_hot_add_limit     unless memory_hot_add_limit.nil?
+          vm_hash[:memory_hot_add_increment] = memory_hot_add_increment unless memory_hot_add_increment.nil?
+
+          collection = template ? templates : vms
           collection.build vm_hash
         end
 
@@ -183,7 +253,13 @@ module ManageIQ
         end
 
         def lazy_find_host(host)
+          return nil if host.nil?
           hosts.lazy_find(host._ref)
+        end
+
+        def lazy_find_datastore(ds)
+          return nil if ds.nil?
+          datastores.lazy_find(ds._ref)
         end
       end
     end
