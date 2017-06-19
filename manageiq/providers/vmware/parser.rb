@@ -37,6 +37,13 @@ module ManageIQ
 
         def parse_compute_resource(cluster, props)
           return if props.nil?
+
+          cluster_hash = {
+            :ems_ref => cluster._ref,
+            :name    => props["name"],
+          }
+
+          clusters.build cluster_hash
         end
         alias_method :parse_cluster_compute_resource, :parse_compute_resource
 
@@ -60,12 +67,13 @@ module ManageIQ
 
           hostname = props["config.network.dnsConfig.hostName"]
 
-          hosts = @collections[:hosts]
-          hosts.build(
+          host_hash = {
             :ems_ref   => host._ref,
             :name      => hostname,
             :hostname  => hostname,
-          )
+          }
+
+          hosts.build host_hash
         end
 
         def parse_resource_pool(rp, props)
@@ -89,12 +97,31 @@ module ManageIQ
             :host            => lazy_find_host(props["summary.runtime.host"]),
           }
 
-          collection = vm_hash[:template] ? @collections[:miq_templates] : @collections[:vms]
-          collection.build(vm_hash)
+          collection = vm_hash[:template] ? templates : vms
+
+          collection.build vm_hash
+        end
+
+        private
+
+        def hosts
+          @collections[:hosts]
+        end
+
+        def vms
+          @collections[:vms]
+        end
+
+        def clusters
+          @collections[:ems_clusters]
+        end
+
+        def templates
+          @collections[:miq_templates]
         end
 
         def lazy_find_host(host)
-          @collections[:hosts].lazy_find(host._ref)
+          hosts.lazy_find(host._ref)
         end
       end
     end

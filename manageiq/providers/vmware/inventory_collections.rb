@@ -5,32 +5,28 @@ module ManageIQ
         def initialize_inventory_collections
           collections = {}
 
-          collections[:vms] = ManageIQ::Providers::Inventory::InventoryCollection.new(
-            :model_class => "ManageIQ::Providers::Vmware::InfraManager::Vm",
+          defaults = {
             :manager_ref => [:ems_ref],
-            :complete    => false,
-            :association => :vms
+          }
+
+          collections[:vms] = ManageIQ::Providers::Inventory::InventoryCollection.new(
+            {:model_class => "ManageIQ::Providers::Vmware::InfraManager::Vm"}.merge(defaults)
           )
 
           collections[:miq_templates] = ManageIQ::Providers::Inventory::InventoryCollection.new(
-            :model_class => "ManageIQ::Providers::Vmware::InfraManager::Template",
-            :manager_ref => [:ems_ref],
-            :complete    => false,
-            :association => :miq_templates
+            {:model_class => "ManageIQ::Providers::Vmware::InfraManager::Template"}.merge(defaults)
           )
 
           collections[:hosts] = ManageIQ::Providers::Inventory::InventoryCollection.new(
-            :model_class => "ManageIQ::Providers::Vmware::InfraManager::Host",
-            :manager_ref => [:ems_ref],
-            :complete    => false,
-            :association => :hosts
+            {:model_class => "ManageIQ::Providers::Vmware::InfraManager::Host"}.merge(defaults)
+          )
+
+          collections[:ems_clusters] = ManageIQ::Providers::Inventory::InventoryCollection.new(
+            {:model_class => "EmsCluster"}.merge(defaults)
           )
 
           collections[:datastores] = ManageIQ::Providers::Inventory::InventoryCollection.new(
-            :model_class => "Storage",
-            :manager_ref => [:ems_ref],
-            :complete    => false,
-            :association => :storages
+            {:model_class => "Storage"}.merge(defaults)
           )
 
           collections
