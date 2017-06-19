@@ -8,12 +8,18 @@ module ManageIQ
         include InventoryCollections
 
         def initialize(ems_id)
-          @ems_id          = ems_id
-          @inv_collections = initialize_inventory_collections
+          @ems_id      = ems_id
+          @collections = initialize_inventory_collections
         end
 
         def inventory
-          collections = @inv_collections.map do |key, collection|
+          @collections
+        end
+
+        def inventory_yaml
+          collections = inventory.map do |key, collection|
+            next if collection.data.blank? && collection.manager_uuids.blank? && collection.all_manager_uuids.nil?
+
             {
               :name              => key,
               :manager_uuids     => collection.manager_uuids,
@@ -22,11 +28,11 @@ module ManageIQ
             }
           end.compact
 
-          {
+          inv = YAML.dump({
             :ems_id      => @ems_id,
-            :class       => 'ManageIQ::Providers::Vmware::InfraManager',
+            :class       => "ManageIQ::Providers::Vmware::Inventory::Persister::InfraManager::Streaming",
             :collections => collections
-          }
+          })
         end
 
         def parse_compute_resource(cluster, props)
@@ -36,12 +42,6 @@ module ManageIQ
 
         def parse_datastore(datastore, props)
           return if props.nil?
-
-          @inv_collections[:datastores].build(
-            :ems_ref  => datastore._ref,
-            :name     => props["summary.name"],
-            :location => props["summary.url"],
-          )
         end
 
         def parse_distributed_virtual_portgroup(dvp, props)
@@ -60,7 +60,7 @@ module ManageIQ
 
           hostname = props["config.network.dnsConfig.hostName"]
 
-          hosts = @inv_collections[:hosts]
+          hosts = @collections[:hosts]
           hosts.build(
             :ems_ref   => host._ref,
             :name      => hostname,
@@ -89,12 +89,12 @@ module ManageIQ
             :host            => lazy_find_host(props["summary.runtime.host"]),
           }
 
-          collection = vm_hash[:template] ? @inv_collections[:templates] : @inv_collections[:vms]
+          collection = vm_hash[:template] ? @collections[:miq_templates] : @collections[:vms]
           collection.build(vm_hash)
         end
 
         def lazy_find_host(host)
-          @inv_collections[:hosts].lazy_find(host._ref)
+          @collections[:hosts].lazy_find(host._ref)
         end
       end
     end
