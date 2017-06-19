@@ -17,10 +17,10 @@ def parse_args
     opt :ems_id,   "ems-id",   :type => :int
   end
 
-  args[:hostname] ||= ENV["COLLECTOR_HOSTNAME"]
-  args[:user]     ||= ENV["COLLECTOR_USER"]
-  args[:password] ||= ENV["COLLECTOR_PASSWORD"]
-  args[:ems_id]   ||= ENV["COLLECTOR_EMS_ID"]
+  args[:hostname] ||= ENV["EMS_HOSTNAME"]
+  args[:user]     ||= ENV["EMS_USER"]
+  args[:password] ||= ENV["EMS_PASSWORD"]
+  args[:ems_id]   ||= ENV["EMS_ID"]
 
   raise Trollop::CommandlineError, "--hostname required" if args[:hostname].nil?
   raise Trollop::CommandlineError, "--user required"     if args[:user].nil?
