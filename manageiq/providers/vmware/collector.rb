@@ -112,10 +112,9 @@ module ManageIQ
           props
         end
 
-        def delete_object(obj)
+        def delete_object(object)
           @inventory_hash[object.class.wsdl_name].except!(object._ref)
-
-          {}
+          nil
         end
       end
     end
