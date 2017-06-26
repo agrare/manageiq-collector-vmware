@@ -29,11 +29,53 @@ module ManageIQ
             {:model_class => "EmsCluster"}.merge(defaults)
           )
 
+          collections[:resource_pools] = ManageIQ::Providers::Inventory::InventoryCollection.new(
+            {:model_class => "ResourcePool"}.merge(defaults)
+          )
+
           collections[:storages] = ManageIQ::Providers::Inventory::InventoryCollection.new(
             {:model_class => "Storage"}.merge(defaults)
           )
 
           collections
+        end
+
+        def clusters
+          @collections[:ems_clusters]
+        end
+
+        def datastores
+          @collections[:storages]
+        end
+
+        def folders
+          @collections[:ems_folders]
+        end
+
+        def hosts
+          @collections[:hosts]
+        end
+
+        def resource_pools
+          @collections[:resource_pools]
+        end
+
+        def templates
+          @collections[:miq_templates]
+        end
+
+        def vms
+          @collections[:vms]
+        end
+
+        def lazy_find_host(host)
+          return nil if host.nil?
+          hosts.lazy_find(host._ref)
+        end
+
+        def lazy_find_datastore(ds)
+          return nil if ds.nil?
+          datastores.lazy_find(ds._ref)
         end
       end
     end

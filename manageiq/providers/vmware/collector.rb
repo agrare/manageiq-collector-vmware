@@ -88,7 +88,6 @@ module ManageIQ
             parser.send(parser_method, object, props) if parser.respond_to?(parser_method)
           end
 
-
           publish_inventory(inventory_stream, parser.inventory_yaml)
         end
 

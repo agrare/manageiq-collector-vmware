@@ -36,6 +36,7 @@ module ManageIQ
         end
 
         def parse_compute_resource(cluster, props)
+          clusters.manager_uuids << cluster._ref
           return if props.nil?
 
           cluster_hash = {
@@ -48,6 +49,7 @@ module ManageIQ
         alias_method :parse_cluster_compute_resource, :parse_compute_resource
 
         def parse_datastore(datastore, props)
+          datastores.manager_uuids << datastore._ref
           return if props.nil?
 
           ds_hash = {
@@ -81,6 +83,7 @@ module ManageIQ
         alias_method :parse_vmware_distributed_virtual_switch, :parse_distributed_virtual_switch
 
         def parse_folder(folder, props)
+          folders.manager_uuids << folder._ref
           return if props.nil?
 
           type = case folder.class.wsdl_name
@@ -106,6 +109,7 @@ module ManageIQ
         alias_method :parse_datacenter, :parse_folder
 
         def parse_host_system(host, props)
+          hosts.manager_uuids << host._ref
           return if props.nil?
 
 
@@ -156,14 +160,26 @@ module ManageIQ
         end
 
         def parse_resource_pool(rp, props)
+          resource_pools.manager_uuids << rp._ref
           return if props.nil?
+
+          rp_hash = {
+            :ems_ref => rp._ref,
+            :uid_ems => rp._ref,
+          }
+
+          name = props["name"]
+
+          rp_hash[:name] = URI.decode(name) unless name.nil?
+
+          resource_pools.build rp_hash
         end
 
         def parse_vapp(vapp, props)
         end
 
         def parse_virtual_machine(vm, props)
-          return if props.nil? # TODO handle deletes
+          return if props.nil?
 
           vm_hash = {
             :ems_ref         => vm._ref,
@@ -249,42 +265,7 @@ module ManageIQ
 
           collection = template ? templates : vms
           collection.build vm_hash
-        end
-
-        private
-
-        def clusters
-          @collections[:ems_clusters]
-        end
-
-        def datastores
-          @collections[:storages]
-        end
-
-        def folders
-          @collections[:ems_folders]
-        end
-
-        def hosts
-          @collections[:hosts]
-        end
-
-        def templates
-          @collections[:miq_templates]
-        end
-
-        def vms
-          @collections[:vms]
-        end
-
-        def lazy_find_host(host)
-          return nil if host.nil?
-          hosts.lazy_find(host._ref)
-        end
-
-        def lazy_find_datastore(ds)
-          return nil if ds.nil?
-          datastores.lazy_find(ds._ref)
+          collection.manager_uuids << vm._ref
         end
       end
     end
