@@ -75,13 +75,14 @@ module ManageIQ
             object = object_update.obj
             kind   = object_update.kind
 
-            case kind
-            when 'enter', 'modify'
-              update_object(object, object_update.changeSet, object_update.missingSet)
-            when 'leave'
-            end
-
-            props = @inventory_hash[object.class.wsdl_name][object._ref]
+            props = case kind
+                    when 'enter'
+                      create_object(object, object_update.changeSet, object_update.missingSet)
+                    when'modify'
+                      update_object(object, object_update.changeSet, object_update.missingSet)
+                    when 'leave'
+                      delete_object(object)
+                    end
 
             parser_method = "parse_#{object.class.wsdl_name.underscore}"
             parser.send(parser_method, object, props) if parser.respond_to?(parser_method)
@@ -91,8 +92,14 @@ module ManageIQ
           publish_inventory(inventory_stream, parser.inventory_yaml)
         end
 
+        def create_object(object, change_set, missing_set)
+          @inventory_hash[object.class.wsdl_name][object._ref] ||= {}
+
+          update_object(object, change_set, missing_set)
+        end
+
         def update_object(object, change_set, _missing_set)
-          props = @inventory_hash[object.class.wsdl_name][object._ref] ||= {}
+          props = {}
 
           change_set.to_a.each do |property_change|
             case property_change.op
@@ -102,10 +109,14 @@ module ManageIQ
             when 'remove', 'indirectRemove'
             end
           end
+
+          props
         end
 
         def delete_object(obj)
           @inventory_hash[object.class.wsdl_name].except!(object._ref)
+
+          {}
         end
       end
     end
