@@ -163,9 +163,12 @@ module ManageIQ
           resource_pools.manager_uuids << rp._ref
           return if props.nil?
 
+          vapp = rp.class.wsdl_name == "VirtualApp"
+
           rp_hash = {
             :ems_ref => rp._ref,
             :uid_ems => rp._ref,
+            :vapp    => vapp,
           }
 
           name = props["name"]
@@ -174,9 +177,7 @@ module ManageIQ
 
           resource_pools.build rp_hash
         end
-
-        def parse_vapp(vapp, props)
-        end
+        alias_method :parse_vapp, :parse_resource_pool
 
         def parse_virtual_machine(vm, props)
           return if props.nil?
