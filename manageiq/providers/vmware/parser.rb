@@ -30,7 +30,7 @@ module ManageIQ
 
           inv = YAML.dump({
             :ems_id      => @ems_id,
-            :class       => "ManageIQ::Providers::Vmware::Inventory::Persister::InfraManager::Streaming",
+            :class       => "ManageIQ::Providers::Vmware::InfraManager::Inventory::Persister::Stream",
             :collections => collections
           })
         end
@@ -81,6 +81,27 @@ module ManageIQ
         alias_method :parse_vmware_distributed_virtual_switch, :parse_distributed_virtual_switch
 
         def parse_folder(folder, props)
+          return if props.nil?
+
+          type = case folder.class.wsdl_name
+                 when "Folder"
+                   "EmsFolder"
+                 when "Datacenter"
+                   "Datacenter"
+                 else
+                   raise "Invalid folder type #{folder.class.wsdl_name}"
+                 end
+
+          folder_hash = {
+            :ems_ref => folder._ref,
+            :uid_ems => folder._ref,
+            :type    => type,
+          }
+
+          name = props["name"]
+          folder_hash[:name] = URI.decode(name) unless name.nil?
+
+          folders.build folder_hash
         end
         alias_method :parse_datacenter, :parse_folder
 
@@ -89,7 +110,7 @@ module ManageIQ
 
 
           host_hash = {
-            :ems_ref   => host._ref,
+            :ems_ref => host._ref,
           }
 
           hostname         = props["config.network.dnsConfig.hostName"]
@@ -238,6 +259,10 @@ module ManageIQ
 
         def datastores
           @collections[:storages]
+        end
+
+        def folders
+          @collections[:ems_folders]
         end
 
         def hosts

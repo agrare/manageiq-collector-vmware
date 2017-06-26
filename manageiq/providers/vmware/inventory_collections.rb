@@ -13,6 +13,10 @@ module ManageIQ
             {:model_class => "ManageIQ::Providers::Vmware::InfraManager::Vm"}.merge(defaults)
           )
 
+          collections[:ems_folders] = ManageIQ::Providers::Inventory::InventoryCollection.new(
+            {:model_class => "EmsFolder"}.merge(defaults)
+          )
+
           collections[:miq_templates] = ManageIQ::Providers::Inventory::InventoryCollection.new(
             {:model_class => "ManageIQ::Providers::Vmware::InfraManager::Template"}.merge(defaults)
           )
