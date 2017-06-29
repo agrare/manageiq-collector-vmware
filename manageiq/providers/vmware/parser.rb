@@ -1,11 +1,13 @@
 require 'manageiq/providers/inventory'
 require 'manageiq/providers/vmware/inventory_collections'
+require 'manageiq/providers/vmware/parser/all'
 
 module ManageIQ
   module Providers
     module Vmware
       class Parser
         include InventoryCollections
+        include Parser::All
 
         def initialize(ems_id)
           @ems_id      = ems_id
@@ -196,11 +198,12 @@ module ManageIQ
         alias_method :parse_vapp, :parse_resource_pool
 
         def parse_virtual_machine(vm, props)
+          vms_and_templates.manager_uuids << vm._ref
           return if props.nil?
 
           vm_hash = {
-            :ems_ref         => vm._ref,
-            :vendor          => "vmware",
+            :ems_ref => vm._ref,
+            :vendor  => "vmware",
           }
 
           uid_ems          = props["summary.config.uuid"]
@@ -223,32 +226,17 @@ module ManageIQ
           linked_clone     = nil
           fault_tolerance  = nil
 
-          memory_reserve        = props["resourceConfig.memoryAllocation.reservation"]
-          memory_reserve_expand = props["resourceConfig.memoryAllocation.expandableReservation"]
-          memory_limit          = props["resourceConfig.memoryAllocation.limit"]
-          memory_shares         = props["resourceConfig.memoryAllocation.shares.shares"]
-          memory_shares_level   = props["resourceConfig.memoryAllocation.shares.level"]
-
-          cpu_reserve        = props["resourceConfig.cpuAllocation.reservation"]
-          cpu_reserve_expand = props["resourceConfig.cpuAllocation.expandableReservation"]
-          cpu_limit          = props["resourceConfig.cpuAllocation.limit"]
-          cpu_shares         = props["resourceConfig.cpuAllocation.shares.shares"]
-          cpu_shares_level   = props["resourceConfig.cpuAllocation.shares.limit"]
+          resource_config   = parse_virtual_machine_resource_config(props)
 
           host_ref          = props["summary.runtime.host"].try(:_ref)
           host              = hosts.lazy_find(host_ref) unless host_ref.nil?
           datastores        = props["datastore"].to_a.collect { |ds| storages.lazy_find(ds._ref) }.compact
           storage           = nil # TODO: requires datastore name cache
           operating_system  = nil
-          hardware          = nil
           custom_attributes = nil
           snapshots         = []
 
-          cpu_hot_add_enabled       = props["config.cpuHotAddEnabled"]
-          cpu_hot_remove_enabled    = props["config.cpuHotRemoveEnabled"]
-          memory_hot_add_enabled    = props["config.memoryHotAddEnabled"]
-          memory_hot_add_limit      = props["config.hotPlugMemoryLimit"]
-          memory_hot_add_increment  = props["config.hotPlugMemoryIncrementSize"]
+          hot_add           = parse_virtual_machine_hot_add(props)
 
           vm_hash[:uid_ems]          = uid_ems          unless uid_ems.nil?
           vm_hash[:name]             = name             unless name.nil?
@@ -261,28 +249,16 @@ module ManageIQ
           vm_hash[:connection_state] = connection_state unless connection_state.nil?
           vm_hash[:cpu_affinity]     = cpu_affinity     unless cpu_affinity.nil?
 
-          vm_hash[:memory_reserve]        = memory_reserve        unless memory_reserve.nil?
-          vm_hash[:memory_reserve_expand] = memory_reserve_expand unless memory_reserve_expand.nil?
-          vm_hash[:memory_limit]          = memory_limit          unless memory_limit.nil?
-          vm_hash[:memory_shares]         = memory_shares         unless memory_shares.nil?
-          vm_hash[:memory_shares_level]   = memory_shares_level   unless memory_shares_level.nil?
+          vm_hash[:type] = "ManageIQ::Providers::Vmware::InfraManager::#{template ? "Template" : "Vm"}"
 
-          vm_hash[:cpu_reserve]         = cpu_reserve        unless cpu_reserve.nil?
-          vm_hash[:cpu_reserve_expand]  = cpu_reserve_expand unless cpu_reserve_expand.nil?
-          vm_hash[:cpu_limit]           = cpu_limit          unless cpu_limit.nil?
-          vm_hash[:cpu_shares]          = cpu_shares         unless cpu_shares.nil?
-          vm_hash[:cpu_shares_level]    = cpu_shares_level   unless cpu_shares_level.nil?
+          vm_hash.merge!(resource_config)
+          vm_hash.merge!(hot_add)
 
-          vm_hash[:host]            = host            unless host.nil?
+          vm_hash[:host] = host unless host.nil?
 
-          vm_hash[:cpu_hot_add_enabled]      = cpu_hot_add_enabled      unless cpu_hot_add_enabled.nil?
-          vm_hash[:cpu_hot_remove_enabled]   = cpu_hot_remove_enabled   unless cpu_hot_remove_enabled.nil?
-          vm_hash[:memory_hot_add_enabled]   = memory_hot_add_enabled   unless memory_hot_add_enabled.nil?
-          vm_hash[:memory_hot_add_limit]     = memory_hot_add_limit     unless memory_hot_add_limit.nil?
-          vm_hash[:memory_hot_add_increment] = memory_hot_add_increment unless memory_hot_add_increment.nil?
+          vm = vms_and_templates.build(vm_hash)
 
-          vms_and_templates.build(vm_hash)
-          vms_and_templates.manager_uuids << vm._ref
+          parse_virtual_machine_hardware(vm, props)
         end
       end
     end

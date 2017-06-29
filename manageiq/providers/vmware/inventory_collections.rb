@@ -6,11 +6,11 @@ module ManageIQ
           collections = {}
 
           [
-            [:vms_and_templates, "VmOrTemplate"],
+            [:vms_and_templates, "VmOrTemplate", :association => :vms_and_templates],
             [:disks, "Disk"],
             [:networks, "Network"],
             [:guest_devices, "GuestDevice"],
-            [:hardwares, "Hardware"],
+            [:hardwares, "Hardware", {:manager_ref => [:vm_or_template]}],
             [:snapshots, "Snapshot"],
             [:operating_systems, "OperatingSystem"],
             [:custom_attributes, "CustomAttribute"],
@@ -24,9 +24,15 @@ module ManageIQ
             [:lans, "Lan"],
             [:storage_profiles, "StorageProfile"],
             [:customization_specs, "CustomizationSpec"],
-          ].each do |assoc, model|
-             collections[assoc] = ManageIQ::Providers::Inventory::InventoryCollection.new(:model_class => model)
-             self.class.define_collection_method(assoc)
+          ].each do |assoc, model, extra_attributes|
+            attributes = {
+              :model_class => model
+            }.merge!(extra_attributes || {})
+
+            collections[assoc] =
+              ManageIQ::Providers::Inventory::InventoryCollection.new(attributes)
+
+            self.class.define_collection_method(assoc)
           end
 
           collections
