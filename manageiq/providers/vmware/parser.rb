@@ -12,11 +12,15 @@ module ManageIQ
           @collections = initialize_inventory_collections
         end
 
+        def self.define_collection_method(collection_key)
+          define_method(collection_key) { @collections[collection_key] }
+        end
+
         def inventory
           @collections
         end
 
-        def inventory_yaml
+        def inventory_raw
           collections = inventory.map do |key, collection|
             next if collection.data.blank? && collection.manager_uuids.blank? && collection.all_manager_uuids.nil?
 
@@ -28,7 +32,7 @@ module ManageIQ
             }
           end.compact
 
-          inv = {
+          {
             :ems_id      => @ems_id,
             :class       => "ManageIQ::Providers::Vmware::InfraManager::Inventory::Persister::Stream",
             :collections => collections
@@ -36,20 +40,32 @@ module ManageIQ
         end
 
         def parse_compute_resource(cluster, props)
-          clusters.manager_uuids << cluster._ref
+          ems_clusters.manager_uuids << cluster._ref
           return if props.nil?
 
           cluster_hash = {
             :ems_ref => cluster._ref,
-            :name    => props["name"],
           }
 
-          clusters.build cluster_hash
+          cluster_hash[:name] = URI.decode(props["name"]) if props.include?("name")
+
+          cluster_hash[:effective_cpu]    = props["summary.effectiveCpu"].to_i                    if props.include?("summary.effectiveCpu")
+          cluster_hash[:effective_memory] = (props["summary.effectiveMemory"].to_i * 1024 * 1024) if props.include?("summary.effectiveMemory")
+
+          cluster_hash[:ha_enabled]       = props["configuration.dasConfig.enabled"].to_s.downcase == "true" if props.include?("configuration.dasConfig.enabled")
+          cluster_hash[:ha_admit_control] = props["configuration.dasConfig.admissionControlEnabled"]         if props.include?("configuration.dasConfig.admissionControlEnabled")
+          cluster_hash[:ha_max_failures]  = props["configuration.dasConfig.failoverLevel"]                   if props.include?("configuration.dasConfig.failoverLevel")
+
+          cluster_hash[:drs_enabled]             = props["configuration.drsConfig.enabled"].to_s.downcase == "true" if props.include?("configuration.drsConfig.enabled")
+          cluster_hash[:drs_automation_level]    = props["configuration.drsConfig.defaultVmBehavior"]               if props.include?("configuration.drsConfig.defaultVmBehavior")
+          cluster_hash[:drs_migration_threshold] = props["configuration.drsConfig.vmotionRate"]                     if props.include?("configuration.drsConfig.vmotionRate")
+
+          ems_clusters.build(cluster_hash)
         end
         alias_method :parse_cluster_compute_resource, :parse_compute_resource
 
         def parse_datastore(datastore, props)
-          datastores.manager_uuids << datastore._ref
+          storages.manager_uuids << datastore._ref
           return if props.nil?
 
           ds_hash = {
@@ -72,7 +88,7 @@ module ManageIQ
           ds_hash[:multiplehostaccess] = multiplehostaccess unless multiplehostaccess.nil?
           ds_hash[:location]           = location           unless location.nil?
 
-          datastores.build ds_hash
+          storages.build(ds_hash)
         end
 
         def parse_distributed_virtual_portgroup(dvp, props)
@@ -83,7 +99,7 @@ module ManageIQ
         alias_method :parse_vmware_distributed_virtual_switch, :parse_distributed_virtual_switch
 
         def parse_folder(folder, props)
-          folders.manager_uuids << folder._ref
+          ems_folders.manager_uuids << folder._ref
           return if props.nil?
 
           type = case folder.class.wsdl_name
@@ -104,7 +120,7 @@ module ManageIQ
           name = props["name"]
           folder_hash[:name] = URI.decode(name) unless name.nil?
 
-          folders.build folder_hash
+          ems_folders.build(folder_hash)
         end
         alias_method :parse_datacenter, :parse_folder
 
@@ -156,7 +172,7 @@ module ManageIQ
           host_hash[:failover]         = failover         unless failover.nil?
           host_hash[:hyperthreading]   = hyperthreading   unless hyperthreading.nil?
 
-          hosts.build host_hash
+          hosts.build(host_hash)
         end
 
         def parse_resource_pool(rp, props)
@@ -175,7 +191,7 @@ module ManageIQ
 
           rp_hash[:name] = URI.decode(name) unless name.nil?
 
-          resource_pools.build rp_hash
+          resource_pools.build(rp_hash)
         end
         alias_method :parse_vapp, :parse_resource_pool
 
@@ -219,8 +235,9 @@ module ManageIQ
           cpu_shares         = props["resourceConfig.cpuAllocation.shares.shares"]
           cpu_shares_level   = props["resourceConfig.cpuAllocation.shares.limit"]
 
-          host              = lazy_find_host(props["summary.runtime.host"])
-          storages          = props["datastore"].to_a.collect { |ds| lazy_find_datastore(ds) }.compact
+          host_ref          = props["summary.runtime.host"].try(:_ref)
+          host              = hosts.lazy_find(host_ref) unless host_ref.nil?
+          datastores        = props["datastore"].to_a.collect { |ds| storages.lazy_find(ds._ref) }.compact
           storage           = nil # TODO: requires datastore name cache
           operating_system  = nil
           hardware          = nil
@@ -264,9 +281,8 @@ module ManageIQ
           vm_hash[:memory_hot_add_limit]     = memory_hot_add_limit     unless memory_hot_add_limit.nil?
           vm_hash[:memory_hot_add_increment] = memory_hot_add_increment unless memory_hot_add_increment.nil?
 
-          collection = template ? templates : vms
-          collection.build vm_hash
-          collection.manager_uuids << vm._ref
+          vms_and_templates.build(vm_hash)
+          vms_and_templates.manager_uuids << vm._ref
         end
       end
     end
