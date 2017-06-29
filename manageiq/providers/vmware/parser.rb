@@ -240,17 +240,17 @@ module ManageIQ
                                end
                              end
           template         = props["summary.config.template"]
-          linked_clone     = nil
-          fault_tolerance  = nil
+          linked_clone     = parse_virtual_machine_linked_clone(props)
+          fault_tolerance  = parse_virtual_machine_fault_tolerance(props)
 
-          resource_config   = parse_virtual_machine_resource_config(props)
-          hot_add           = parse_virtual_machine_hot_add(props)
+          resource_config  = parse_virtual_machine_resource_config(props)
+          hot_add          = parse_virtual_machine_hot_add(props)
 
-          host_ref          = props["summary.runtime.host"].try(:_ref)
-          host              = hosts.lazy_find(host_ref) unless host_ref.nil?
-          datastores        = props["datastore"].to_a.collect { |ds| storages.lazy_find(ds._ref) }.compact
-          storage           = nil # TODO: requires datastore name cache
-          snapshots         = []
+          host_ref         = props["summary.runtime.host"].try(:_ref)
+          host             = hosts.lazy_find(host_ref) unless host_ref.nil?
+          datastores       = props["datastore"].to_a.collect { |ds| storages.lazy_find(ds._ref) }.compact
+          storage          = nil # TODO: requires datastore name cache
+          snapshots        = []
 
 
           vm_hash[:uid_ems]          = uid_ems          unless uid_ems.nil?
@@ -263,6 +263,8 @@ module ManageIQ
           vm_hash[:standby_action]   = standby_action   unless standby_action.nil?
           vm_hash[:connection_state] = connection_state unless connection_state.nil?
           vm_hash[:cpu_affinity]     = cpu_affinity     unless cpu_affinity.nil?
+          vm_hash[:linked_clone]     = linked_clone     unless linked_clone.nil?
+          vm_hash[:fault_tolerance]  = fault_tolerance  unless fault_tolerance.nil?
 
           vm_hash[:type] = "ManageIQ::Providers::Vmware::InfraManager::#{template ? "Template" : "Vm"}"
 

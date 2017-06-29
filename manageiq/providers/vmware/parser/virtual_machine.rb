@@ -3,6 +3,26 @@ module ManageIQ
     module Vmware
       class Parser
         module VirtualMachine
+          def parse_virtual_machine_linked_clone(props)
+            return unless props.include?("summary.storage.unshared") && props.include?("summary.storage.committed")
+
+            unshared  = props["summary.storage.unshared"]
+            committed = props["summary.storage.committed"]
+            ft_info   = props["summary.config.ftInfo.instanceUuids"].to_a
+
+            return unshared != committed && ft_info.size <= 1
+          end
+
+          def parse_virtual_machine_fault_tolerance(props)
+            return unless props.include?("summary.storage.unshared") && props.include?("summary.storage.committed")
+
+            unshared  = props["summary.storage.unshared"]
+            committed = props["summary.storage.committed"]
+            ft_info   = props["summary.config.ftInfo.instanceUuids"].to_a
+
+            return unshared != committed && ft_info.size > 1
+          end
+
           def parse_virtual_machine_resource_config(props)
             result = {}
 
@@ -148,6 +168,7 @@ module ManageIQ
           end
 
           def parse_virtual_machine_disks(hardware, props)
+            return unless props.include?("config.hardware.device")
           end
 
           def parse_virtual_machine_custom_attributes(vm, props)
