@@ -32,11 +32,11 @@ module ManageIQ
         private
 
         def kafka_inventory_producer
-          @kafka.producer
+          @kafka.producer(:compression_codec => :gzip)
         end
 
         def publish_inventory(stream, inventory)
-          stream.produce(inventory, topic: "inventory")
+          stream.produce(YAML.dump(inventory), topic: "inventory")
           stream.deliver_messages
         end
 
@@ -88,7 +88,7 @@ module ManageIQ
             parser.send(parser_method, object, props) if parser.respond_to?(parser_method)
           end
 
-          publish_inventory(inventory_stream, parser.inventory_yaml)
+          publish_inventory(inventory_stream, parser.inventory_raw)
         end
 
         def create_object(object, change_set, missing_set)
