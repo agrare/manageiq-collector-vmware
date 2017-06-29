@@ -60,7 +60,28 @@ module ManageIQ
             result
           end
 
+          def parse_virtual_machine_operating_system(vm, props)
+            return unless props.include? "summary.config.guestFullName"
+
+            product_name = if props["summary.config.guestFullName"].blank?
+                             "Other"
+                           else
+                             props["summary.config.guestFullName"]
+                           end
+
+            result = {
+              :vm_or_template => vm,
+              :product_name   => product_name
+            }
+
+            operating_systems.build(result)
+          end
+
           def parse_virtual_machine_hardware(vm, props)
+            result = {
+              :vm_or_template => vm,
+            }
+
             guest_os = if props.include? "summary.config.guestId"
                          if props["summary.config.guestId"].blank?
                            "Other"
@@ -77,11 +98,7 @@ module ManageIQ
                                    end
                                  end
 
-            result = {
-              :vm_or_template => vm,
-            }
-
-            result[:guest_os] = guest_os unless guest_os.nil?
+            result[:guest_os]           = guest_os unless guest_os.nil?
             result[:guest_os_full_name] = guest_os_full_name unless guest_os_full_name.nil?
 
             uuid          = props["summary.config.uuid"] if props.include? "summary.config.uuid"

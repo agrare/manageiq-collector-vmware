@@ -232,7 +232,6 @@ module ManageIQ
           host              = hosts.lazy_find(host_ref) unless host_ref.nil?
           datastores        = props["datastore"].to_a.collect { |ds| storages.lazy_find(ds._ref) }.compact
           storage           = nil # TODO: requires datastore name cache
-          operating_system  = nil
           custom_attributes = nil
           snapshots         = []
 
@@ -258,6 +257,7 @@ module ManageIQ
 
           vm = vms_and_templates.build(vm_hash)
 
+          parse_virtual_machine_operating_system(vm, props)
           parse_virtual_machine_hardware(vm, props)
         end
       end
