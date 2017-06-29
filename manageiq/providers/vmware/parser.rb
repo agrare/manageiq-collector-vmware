@@ -28,11 +28,11 @@ module ManageIQ
             }
           end.compact
 
-          inv = YAML.dump({
+          inv = {
             :ems_id      => @ems_id,
             :class       => "ManageIQ::Providers::Vmware::InfraManager::Inventory::Persister::Stream",
             :collections => collections
-          })
+          }
         end
 
         def parse_compute_resource(cluster, props)
