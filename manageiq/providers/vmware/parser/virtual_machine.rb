@@ -82,34 +82,90 @@ module ManageIQ
               :vm_or_template => vm,
             }
 
-            guest_os = if props.include? "summary.config.guestId"
-                         if props["summary.config.guestId"].blank?
-                           "Other"
-                         else
-                           props["summary.config.guestId"].to_s.downcase.chomp("guest")
-                         end
-                       end
+            if props.include? "summary.config.uuid"
+              result[:bios] = props["summary.config.uuid"]
+            end
 
-            guest_os_full_name = if props.include? "summary.config.guestFullName"
-                                   if props["summary.config.guestFullName"].blank?
-                                     "Other"
-                                   else
-                                     props["summary.config.guestFullName"]
-                                   end
-                                 end
+            if props.include? "summary.config.annotation"
+              result[:annotation] = props["summary.config.annotation"]
+            end
 
-            result[:guest_os]           = guest_os unless guest_os.nil?
-            result[:guest_os_full_name] = guest_os_full_name unless guest_os_full_name.nil?
+            if props.include? "summary.config.memorySizeMB"
+              result[:memory_mb] = props["summary.config.memorySizeMB"]
+            end
 
-            uuid          = props["summary.config.uuid"] if props.include? "summary.config.uuid"
-            result[:bios] = uuid unless uuid.nil?
+            if props.include? "config.version"
+              result[:virtual_hw_version] = props["config.version"].to_s.split('-').last
+            end
+
+            result.merge!(parse_virtual_machine_guest_os(props))
+            result.merge!(parse_virtual_machine_cpus(props))
 
             hardware = hardwares.build(result)
 
             parse_virtual_machine_disks(hardware, props)
           end
 
+          def parse_virtual_machine_guest_os(props)
+            result = {}
+
+            guest_os = if props.include? "summary.config.guestId"
+              if props["summary.config.guestId"].blank?
+                "Other"
+              else
+                props["summary.config.guestId"].to_s.downcase.chomp("guest")
+              end
+            end
+
+            guest_os_full_name = if props.include? "summary.config.guestFullName"
+              if props["summary.config.guestFullName"].blank?
+                "Other"
+              else
+                props["summary.config.guestFullName"]
+              end
+            end
+
+            result[:guest_os]           = guest_os unless guest_os.nil?
+            result[:guest_os_full_name] = guest_os_full_name unless guest_os_full_name.nil?
+
+            result
+          end
+
+          def parse_virtual_machine_cpus(props)
+            result = {}
+
+            if props.include? "summary.config.numCpu"
+              result[:cpu_total_cores] = props["summary.config.numCpu"].to_i
+              if props.include? "config.hardware.numCoresPerSocket"
+                result[:cpu_cores_per_socket] = props["config.hardware.numCoresPerSocket"].to_i
+              else
+                result[:cpu_cores_per_socket] = 1
+              end
+              result[:cpu_sockets] = result[:cpu_total_cores] / result[:cpu_cores_per_socket]
+            end
+
+            result
+          end
+
           def parse_virtual_machine_disks(hardware, props)
+          end
+
+          def parse_virtual_machine_custom_attributes(vm, props)
+            custom_values = props["summary.customValue"]
+            return if custom_values.empty?
+
+            key_to_name = {}
+            props["availableField"].to_a.each { |af| key_to_name[af["key"]] = af["name"] }
+
+            custom_values.each do |cv|
+              custom_attributes.build(
+                :resource => vm,
+                :section  => "custom_field",
+                :name     => key_to_name[cv["key"]],
+                :value    => cv["value"],
+                :source   => "VC"
+              )
+            end
           end
         end
       end

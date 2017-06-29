@@ -227,15 +227,14 @@ module ManageIQ
           fault_tolerance  = nil
 
           resource_config   = parse_virtual_machine_resource_config(props)
+          hot_add           = parse_virtual_machine_hot_add(props)
 
           host_ref          = props["summary.runtime.host"].try(:_ref)
           host              = hosts.lazy_find(host_ref) unless host_ref.nil?
           datastores        = props["datastore"].to_a.collect { |ds| storages.lazy_find(ds._ref) }.compact
           storage           = nil # TODO: requires datastore name cache
-          custom_attributes = nil
           snapshots         = []
 
-          hot_add           = parse_virtual_machine_hot_add(props)
 
           vm_hash[:uid_ems]          = uid_ems          unless uid_ems.nil?
           vm_hash[:name]             = name             unless name.nil?
@@ -259,6 +258,7 @@ module ManageIQ
 
           parse_virtual_machine_operating_system(vm, props)
           parse_virtual_machine_hardware(vm, props)
+          parse_virtual_machine_custom_attributes(vm, props)
         end
       end
     end
