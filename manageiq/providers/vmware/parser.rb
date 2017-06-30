@@ -54,13 +54,8 @@ module ManageIQ
           cluster_hash[:effective_cpu]    = props["summary.effectiveCpu"].to_i                    if props.include?("summary.effectiveCpu")
           cluster_hash[:effective_memory] = (props["summary.effectiveMemory"].to_i * 1024 * 1024) if props.include?("summary.effectiveMemory")
 
-          cluster_hash[:ha_enabled]       = props["configuration.dasConfig.enabled"].to_s.downcase == "true" if props.include?("configuration.dasConfig.enabled")
-          cluster_hash[:ha_admit_control] = props["configuration.dasConfig.admissionControlEnabled"]         if props.include?("configuration.dasConfig.admissionControlEnabled")
-          cluster_hash[:ha_max_failures]  = props["configuration.dasConfig.failoverLevel"]                   if props.include?("configuration.dasConfig.failoverLevel")
-
-          cluster_hash[:drs_enabled]             = props["configuration.drsConfig.enabled"].to_s.downcase == "true" if props.include?("configuration.drsConfig.enabled")
-          cluster_hash[:drs_automation_level]    = props["configuration.drsConfig.defaultVmBehavior"]               if props.include?("configuration.drsConfig.defaultVmBehavior")
-          cluster_hash[:drs_migration_threshold] = props["configuration.drsConfig.vmotionRate"]                     if props.include?("configuration.drsConfig.vmotionRate")
+          cluster_hash.merge!(parse_cluster_das_config(props))
+          cluster_hash.merge!(parse_cluster_drs_config(props))
 
           ems_clusters.build(cluster_hash)
         end
@@ -189,9 +184,13 @@ module ManageIQ
             :vapp    => vapp,
           }
 
-          name = props["name"]
+          rp_hash[:name] = URI.decode(props["name"]) if props.include? "name"
 
-          rp_hash[:name] = URI.decode(name) unless name.nil?
+          cpu_allocation    = parse_resource_pool_cpu_allocation(props)
+          memory_allocation = parse_resource_pool_memory_allocation(props)
+
+          rp_hash.merge!(cpu_allocation)
+          rp_hash.merge!(memory_allocation)
 
           resource_pools.build(rp_hash)
         end
