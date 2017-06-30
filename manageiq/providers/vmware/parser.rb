@@ -169,7 +169,9 @@ module ManageIQ
           host_hash[:failover]         = failover         unless failover.nil?
           host_hash[:hyperthreading]   = hyperthreading   unless hyperthreading.nil?
 
-          hosts.build(host_hash)
+          host = hosts.build(host_hash)
+
+          parse_host_storages(host, props)
         end
 
         def parse_resource_pool(rp, props)

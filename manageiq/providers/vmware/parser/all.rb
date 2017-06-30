@@ -1,4 +1,5 @@
 require 'manageiq/providers/vmware/parser/cluster'
+require 'manageiq/providers/vmware/parser/host'
 require 'manageiq/providers/vmware/parser/resource_pool'
 require 'manageiq/providers/vmware/parser/virtual_machine'
 
@@ -8,6 +9,7 @@ module ManageIQ
       class Parser
         module All
           include Cluster
+          include Host
           include ResourcePool
           include VirtualMachine
         end
