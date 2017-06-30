@@ -96,21 +96,48 @@ module ManageIQ
           publish_inventory(parser.inventory_raw)
         end
 
+        DEFAULT_OBJECT_HASH = {
+          "VirtualMachine" => {
+            "config.template" => nil,
+            "summary.config.name" => nil,
+          },
+          "Host"           => {
+            "config.network.dnsConfig.hostName" => nil,
+          },
+          "Datastore"      => {
+            "summary.name" => nil
+          }
+        }
+
         def create_object(object, change_set, missing_set)
-          @inventory_hash[object.class.wsdl_name][object._ref] ||= {}
+          @inventory_hash[object.class.wsdl_name][object._ref] ||= DEFAULT_OBJECT_HASH[object.class.wsdl_name] || {}
 
           update_object(object, change_set, missing_set)
         end
 
         def update_object(object, change_set, _missing_set)
-          props = {}
+          props = @inventory_hash[object.class.wsdl_name][object._ref].dup
 
           change_set.to_a.each do |property_change|
             case property_change.op
             when 'add'
+              props[property_change.name] ||= []
+              props[property_change.name] << property_change.val
             when 'assign'
               props[property_change.name] = property_change.val
             when 'remove', 'indirectRemove'
+              case props[property_change.name]
+              when Array
+                props.property_change.delete(property_change.val)
+              when Hash
+                props.except!(property_change.name)
+              end
+            end
+          end
+
+          @inventory_hash[object.class.wsdl_name][object._ref].each_key do |cached_key|
+            if props.include? cached_key
+              @inventory_hash[object.class.wsdl_name][object._ref][cached_key] = props[cached_key]
             end
           end
 
