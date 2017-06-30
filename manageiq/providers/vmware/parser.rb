@@ -133,11 +133,21 @@ module ManageIQ
           hostname         = props["config.network.dnsConfig.hostName"]
           ipaddress        = nil # TODO
           uid_ems          = nil # TODO
-          product_name     = props["summary.config.product.name"]
-          product_vendor   = props["summary.config.product.vendor"].split(",").first.to_s.downcase
-          product_build    = props["summary.config.product.build"]
-          connection_state = props["summary.runtime.connectionState"]
-          maintenance_mode = props["summary.runtime.inMaintenanceMode"]
+          product_name     = if props.include? "summary.config.product.name"
+                               props["summary.config.product.name"]
+                             end
+          product_vendor   = if props.include? "summary.config.product.vendor"
+                               props["summary.config.product.vendor"].split(",").first.to_s.downcase
+                             end
+          product_build    = if props.include? "summary.config.product.build"
+                               props["summary.config.product.build"]
+                             end
+          connection_state = if props.include? "summary.runtime.connectionState"
+                               props["summary.runtime.connectionState"]
+                             end
+          maintenance_mode = if props.include? "summary.runtime.inMaintenanceMode"
+                               props["summary.runtime.inMaintenanceMode"]
+                             end
           power_state      = unless connection_state.nil? || maintenance_mode.nil?
                                if connection_state != "connected"
                                  "off"
@@ -147,11 +157,15 @@ module ManageIQ
                                  "on"
                                end
                              end
-          admin_disabled   = props["config.adminDisabled"].to_s.downcase == "true"
+          admin_disabled   = if props.include? "config.adminDisabled"
+                               props["config.adminDisabled"].to_s.downcase == "true"
+                             end
           asset_tag        = nil # TODO
           service_tag      = nil # TODO
           failover         = nil # TODO
-          hyperthreading   = props["config.hyperThread.active"]
+          hyperthreading   = if props.include? "config.hyperThread.active"
+                               props["config.hyperThread.active"]
+                             end
 
           host_hash[:name]             = hostname         unless hostname.nil?
           host_hash[:hostname]         = hostname         unless hostname.nil?

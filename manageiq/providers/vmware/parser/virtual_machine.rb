@@ -151,7 +151,7 @@ module ManageIQ
           end
 
           def parse_virtual_machine_custom_attributes(vm, props)
-            custom_values = props["summary.customValue"]
+            custom_values = props["summary.customValue"].to_a
             return if custom_values.empty?
 
             key_to_name = {}
