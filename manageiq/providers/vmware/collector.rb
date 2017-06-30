@@ -46,7 +46,10 @@ module ManageIQ
         def wait_for_updates(vim)
           property_filter = create_property_filter(vim)
 
-          options = RbVmomi::VIM.WaitOptions(:maxWaitSeconds => 10)
+          options = RbVmomi::VIM.WaitOptions(
+            :maxObjectUpdates => 50,
+            :maxWaitSeconds   => 10
+          )
 
           version = ""
           while true
