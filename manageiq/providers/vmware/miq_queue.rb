@@ -21,7 +21,7 @@ class ManageIQ::Providers::Vmware::MiqQueue
       close_on_exit = true
     end
     client.publish(address, options[:message].to_yaml, headers)
-    pp("Address(#{address}), msg(#{options[:message].inspect}), headers(#{headers.inspect})")
+    #pp("Address(#{address}), msg(#{options[:message].inspect}), headers(#{headers.inspect})")
     client.close if close_on_exit
   end
 

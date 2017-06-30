@@ -1,4 +1,3 @@
-require 'kafka'
 require 'yaml'
 require 'rbvmomi/vim'
 require 'manageiq/providers/vmware/parser'
@@ -18,8 +17,9 @@ module ManageIQ
           @hostname       = hostname
           @user           = user
           @password       = password
+          @counter        = 0
           @inventory_hash = Hash.new { |h, k| h[k] = {} }
-          @kafka          = Kafka.new(seed_brokers: ["localhost:9092"], client_id: "miq-collector")
+          @queue_client   = ManageIQ::Providers::Vmware::ActiveMqClient.open(true, self.class.name)
         end
 
         def run
@@ -28,16 +28,19 @@ module ManageIQ
           wait_for_updates(vim)
         ensure
           vim.serviceContent.sessionManager.Logout unless vim.nil?
+          @queue_client.close unless @queue_client.nil?
         end
 
         private
 
-        def kafka_inventory_producer
-          @kafka.producer(:compression_codec => :gzip)
-        end
+        def publish_inventory(inventory)
+          inventory.merge!(:counter => @counter += 1)
 
-        def publish_inventory(stream, inventory)
-          ManageIQ::Providers::Vmware::MiqQueue.put_job(:message => inventory, :service => 'ems_operation')
+          ManageIQ::Providers::Vmware::MiqQueue.put_job(
+            @queue_client,
+            :message => inventory,
+            :service => 'ems_inventory'
+          )
         end
 
         def wait_for_updates(vim)
@@ -68,7 +71,6 @@ module ManageIQ
         end
 
         def process_update_set(object_updates)
-          inventory_stream = kafka_inventory_producer
           parser = ManageIQ::Providers::Vmware::Parser.new(@ems_id)
 
           object_updates.each do |object_update|
@@ -88,7 +90,7 @@ module ManageIQ
             parser.send(parser_method, object, props) if parser.respond_to?(parser_method)
           end
 
-          publish_inventory(inventory_stream, parser.inventory_raw)
+          publish_inventory(parser.inventory_raw)
         end
 
         def create_object(object, change_set, missing_set)
