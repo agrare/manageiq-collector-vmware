@@ -2,6 +2,7 @@ require 'kafka'
 require 'yaml'
 require 'rbvmomi/vim'
 require 'manageiq/providers/vmware/parser'
+require 'manageiq/providers/vmware/miq_queue'
 require 'manageiq/providers/vmware/collector/connection'
 require 'manageiq/providers/vmware/collector/property_collector'
 
@@ -36,8 +37,7 @@ module ManageIQ
         end
 
         def publish_inventory(stream, inventory)
-          stream.produce(YAML.dump(inventory), topic: "inventory")
-          stream.deliver_messages
+          ManageIQ::Providers::Vmware::MiqQueue.put_job(:message => inventory, :service => 'ems_operation')
         end
 
         def wait_for_updates(vim)
