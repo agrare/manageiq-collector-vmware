@@ -186,6 +186,8 @@ module ManageIQ
           host = hosts.build(host_hash)
 
           parse_host_storages(host, props)
+          parse_host_operating_systems(host, props)
+          parse_host_hardware(host, props)
         end
 
         def parse_resource_pool(rp, props)
