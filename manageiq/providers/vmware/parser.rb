@@ -51,11 +51,13 @@ module ManageIQ
 
           cluster_hash[:name] = URI.decode(props["name"]) if props.include?("name")
 
-          cluster_hash[:effective_cpu]    = props["summary.effectiveCpu"].to_i                    if props.include?("summary.effectiveCpu")
-          cluster_hash[:effective_memory] = (props["summary.effectiveMemory"].to_i * 1024 * 1024) if props.include?("summary.effectiveMemory")
+          summary    = parse_cluster_summary(props)
+          das_config = parse_cluster_das_config(props)
+          drs_config = parse_cluster_drs_config(props)
 
-          cluster_hash.merge!(parse_cluster_das_config(props))
-          cluster_hash.merge!(parse_cluster_drs_config(props))
+          cluster_hash.merge!(summary)
+          cluster_hash.merge!(das_config)
+          cluster_hash.merge!(drs_config)
 
           ems_clusters.build(cluster_hash)
         end

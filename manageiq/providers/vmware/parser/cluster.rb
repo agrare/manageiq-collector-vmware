@@ -3,6 +3,19 @@ module ManageIQ
     module Vmware
       class Parser
         module Cluster
+          def parse_cluster_summary(props)
+            result = {}
+
+            if props.include? "summary.effectiveCpu"
+              result[:effective_cpu]    = props["summary.effectiveCpu"].to_i
+            end
+            if props.include? "summary.effectiveMemory"
+              result[:effective_memory] = props["summary.effectiveMemory"].to_i * 1024 * 1024
+            end
+
+            result
+          end
+
           def parse_cluster_das_config(props)
             result = {}
 
