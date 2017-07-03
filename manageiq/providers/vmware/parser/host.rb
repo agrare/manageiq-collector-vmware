@@ -39,14 +39,14 @@ module ManageIQ
               result[:maintenance] = props["summary.runtime.inMaintenanceMode"]
             end
 
-            if result.include? :connection_state && result.include? :maintenance
+            if result.include?(:connection_state) && result.include?(:maintenance)
               result[:power_state] = if result[:connection_state] != "connected"
-                "off"
-              elsif result[:maintenance].to_s.downcase == "true"
-                "maintenance"
-              else
-                "on"
-              end
+                                       "off"
+                                     elsif result[:maintenance].to_s.downcase == "true"
+                                       "maintenance"
+                                     else
+                                       "on"
+                                     end
             end
 
             result
@@ -58,7 +58,7 @@ module ManageIQ
             props["datastore"].to_a.each do |datastore|
               result = {
                 :host    => host,
-                :storage => storages.lazy_find(datastore._ref),
+                :storage => storages.find_or_build(datastore._ref),
                 :ems_ref => datastore._ref,
               }
 

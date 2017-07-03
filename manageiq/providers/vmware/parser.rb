@@ -220,9 +220,10 @@ module ManageIQ
 
           resource_config  = parse_virtual_machine_resource_config(props)
           hot_add          = parse_virtual_machine_hot_add(props)
-
-          host_ref         = props["summary.runtime.host"].try(:_ref)
-          host             = hosts.lazy_find(host_ref) unless host_ref.nil?
+          host             = if props.include? "summary.runtime.host"
+                               host_ref = props["summary.runtime.host"]._ref
+                               hosts.lazy_find(host_ref)
+                             end
           datastores       = props["datastore"].to_a.collect { |ds| storages.lazy_find(ds._ref) }.compact
           storage          = nil # TODO: requires datastore name cache
           snapshots        = []
