@@ -71,21 +71,13 @@ module ManageIQ
             :ems_ref => datastore._ref,
           }
 
-          name               = props["summary.name"]
-          store_type         = props["summary.type"].to_s.upcase
-          total_space        = props["summary.capacity"]
-          free_space         = props["summary.freeSpace"]
-          uncommitted        = props["summary.uncommitted"]
-          multiplehostaccess = props["summary.multipleHostAccess"]
-          location           = props["summary.url"]
-
-          ds_hash[:name]               = name               unless name.nil?
-          ds_hash[:store_type]         = store_type         unless store_type.nil?
-          ds_hash[:total_space]        = total_space        unless total_space.nil?
-          ds_hash[:free_space]         = free_space         unless free_space.nil?
-          ds_hash[:uncommitted]        = uncommitted        unless uncommitted.nil?
-          ds_hash[:multiplehostaccess] = multiplehostaccess unless multiplehostaccess.nil?
-          ds_hash[:location]           = location           unless location.nil?
+          ds_hash[:name]               = props["summary.name"]
+          ds_hash[:store_type]         = props["summary.type"].to_s.upcase   if props.include? "summary.type"
+          ds_hash[:total_space]        = props["summary.capacity"]           if props.include? "summary.capacity"
+          ds_hash[:free_space]         = props["summary.freeSpace"]          if props.include? "summary.freeSpace"
+          ds_hash[:uncommitted]        = props["summary.uncommitted"]        if props.include? "summary.uncommitted"
+          ds_hash[:multiplehostaccess] = props["summary.multipleHostAccess"] if props.include? "summary.multipleHostAccess"
+          ds_hash[:location]           = props["summary.url"]                if props.include? "summary.url"
 
           storages.build(ds_hash)
         end
