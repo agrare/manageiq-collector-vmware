@@ -122,7 +122,18 @@ module ManageIQ
           dvs_hash[:ports] = props["config.numPorts"] if props.include? "config.numPorts"
           dvs_hash[:shared] = true
 
-          switches.build(dvs_hash)
+          switch = switches.build(dvs_hash)
+
+          switch_hosts = ["config.host", "summary.host", "summary.hostMember"].collect do |host_attr|
+            props[host_attr].to_a if props.include? host_attr
+          end.flatten.compact
+
+          switch_hosts.uniq { |h| h._ref}.each do |host|
+            host_switches.build(
+              :host => hosts.lazy_find(host._ref),
+              :switch => switch
+            )
+          end
         end
         alias_method :parse_vmware_distributed_virtual_switch, :parse_distributed_virtual_switch
 
