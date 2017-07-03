@@ -91,9 +91,38 @@ module ManageIQ
         end
 
         def parse_distributed_virtual_portgroup(dvp, props)
+          lans.manager_uuids << dvp._ref
+          return if props.nil?
+
+          lan_hash = {
+            :uid_ems => dvp._ref,
+          }
+
+          lan_hash[:name] = URI.decode(props["config.name"]) if props.include? "config.name"
+          lan_hash[:tag]  = props["config.defaultPortConfig.vlan.vlanId"].to_s if props.include? "config.defaultPortConfig.vlan.vlanId"
+
+          if props.include? "config.distributedVirtualSwitch"
+            dvs_ref = props["config.distributedVirtualSwitch"]._ref
+            lan_hash[:switch] = switches.lazy_find(dvs_ref)
+          end
+
+          lans.build(lan_hash)
         end
 
         def parse_distributed_virtual_switch(dvs, props)
+          switches.manager_uuids << dvs._ref
+          return if props.nil?
+
+          dvs_hash = {
+            :uid_ems => dvs._ref,
+          }
+
+          dvs_hash[:name] = URI.decode(props["summary.name"]) if props.include? "summary.name"
+          dvs_hash[:switch_uuid] = props["summary.uuid"] if props.include? "summary.uuid"
+          dvs_hash[:ports] = props["config.numPorts"] if props.include? "config.numPorts"
+          dvs_hash[:shared] = true
+
+          switches.build(dvs_hash)
         end
         alias_method :parse_vmware_distributed_virtual_switch, :parse_distributed_virtual_switch
 
