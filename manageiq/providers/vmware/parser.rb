@@ -127,38 +127,15 @@ module ManageIQ
           hosts.manager_uuids << host._ref
           return if props.nil?
 
-
           host_hash = {
             :ems_ref => host._ref,
           }
 
-          hostname         = props["config.network.dnsConfig.hostName"]
-          ipaddress        = nil # TODO
+          network = parse_host_network(props)
+          product = parse_host_product(props)
+          runtime = parse_host_runtime(props)
+
           uid_ems          = nil # TODO
-          product_name     = if props.include? "summary.config.product.name"
-                               props["summary.config.product.name"]
-                             end
-          product_vendor   = if props.include? "summary.config.product.vendor"
-                               props["summary.config.product.vendor"].split(",").first.to_s.downcase
-                             end
-          product_build    = if props.include? "summary.config.product.build"
-                               props["summary.config.product.build"]
-                             end
-          connection_state = if props.include? "summary.runtime.connectionState"
-                               props["summary.runtime.connectionState"]
-                             end
-          maintenance_mode = if props.include? "summary.runtime.inMaintenanceMode"
-                               props["summary.runtime.inMaintenanceMode"]
-                             end
-          power_state      = unless connection_state.nil? || maintenance_mode.nil?
-                               if connection_state != "connected"
-                                 "off"
-                               elsif maintenance_mode.to_s.downcase == "true"
-                                 "maintenance"
-                               else
-                                 "on"
-                               end
-                             end
           admin_disabled   = if props.include? "config.adminDisabled"
                                props["config.adminDisabled"].to_s.downcase == "true"
                              end
@@ -169,21 +146,17 @@ module ManageIQ
                                props["config.hyperThread.active"]
                              end
 
-          host_hash[:name]             = hostname         unless hostname.nil?
-          host_hash[:hostname]         = hostname         unless hostname.nil?
-          host_hash[:ipaddress]        = ipaddress        unless ipaddress.nil?
           host_hash[:uid_ems]          = uid_ems          unless uid_ems.nil?
-          host_hash[:vmm_vendor]       = product_vendor   unless product_vendor.nil?
-          host_hash[:vmm_product]      = product_name     unless product_name.nil?
-          host_hash[:vmm_buildnumber]  = product_build    unless product_build.nil?
-          host_hash[:connection_state] = connection_state unless connection_state.nil?
-          host_hash[:power_state]      = power_state      unless power_state.nil?
           host_hash[:admin_disabled]   = admin_disabled   unless admin_disabled.nil?
-          host_hash[:maintenance]      = maintenance_mode unless maintenance_mode.nil?
           host_hash[:asset_tag]        = asset_tag        unless asset_tag.nil?
           host_hash[:service_tag]      = service_tag      unless service_tag.nil?
           host_hash[:failover]         = failover         unless failover.nil?
           host_hash[:hyperthreading]   = hyperthreading   unless hyperthreading.nil?
+
+          host_hash.merge!(network)
+          host_hash.merge!(product)
+          host_hash.merge!(runtime)
+          host_hash[:name] = host_hash[:hostname] if host_hash.include? :hostname
 
           host = hosts.build(host_hash)
 

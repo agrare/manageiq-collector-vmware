@@ -3,6 +3,55 @@ module ManageIQ
     module Vmware
       class Parser
         module Host
+          def parse_host_network(props)
+            result = {}
+
+            if props.include? "config.network.dnsConfig.hostName"
+              result[:hostname] = props["config.network.dnsConfig.hostName"]
+            end
+
+            result
+          end
+
+          def parse_host_product(props)
+            result = {}
+
+            if props.include? "summary.config.product.name"
+              result[:vmm_product] = props["summary.config.product.name"]
+            end
+            if props.include? "summary.config.product.vendor"
+              result[:vmm_vendor] = props["summary.config.product.vendor"].split(",").first.to_s.downcase
+            end
+            if props.include? "summary.config.product.build"
+              result[:vmm_buildnumber] = props["summary.config.product.build"]
+            end
+
+            result
+          end
+
+          def parse_host_runtime(props)
+            result = {}
+
+            if props.include? "summary.runtime.connectionState"
+              result[:connection_state] = props["summary.runtime.connectionState"]
+            end
+            if props.include? "summary.runtime.inMaintenanceMode"
+              result[:maintenance] = props["summary.runtime.inMaintenanceMode"]
+            end
+
+            if result.include? :connection_state && result.include? :maintenance
+              result[:power_state] = if result[:connection_state] != "connected"
+                "off"
+              elsif result[:maintenance].to_s.downcase == "true"
+                "maintenance"
+              else
+                "on"
+              end
+            end
+
+            result
+          end
+
           def parse_host_storages(host, props)
             return unless props.include? "datastore"
 
