@@ -158,10 +158,10 @@ module ManageIQ
               result[:cpu_total_cores] = props["summary.config.numCpu"].to_i
               if props.include? "config.hardware.numCoresPerSocket"
                 result[:cpu_cores_per_socket] = props["config.hardware.numCoresPerSocket"].to_i
-              else
-                result[:cpu_cores_per_socket] = 1
               end
-              result[:cpu_sockets] = result[:cpu_total_cores] / result[:cpu_cores_per_socket]
+
+              result[:cpu_cores_per_socket] = 1 if result[:cpu_cores_per_socket].to_i == 0
+              result[:cpu_sockets]          = result[:cpu_total_cores] / result[:cpu_cores_per_socket]
             end
 
             result
