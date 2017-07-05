@@ -79,7 +79,27 @@ module ManageIQ
           ds_hash[:multiplehostaccess] = props["summary.multipleHostAccess"] if props.include? "summary.multipleHostAccess"
           ds_hash[:location]           = props["summary.url"]                if props.include? "summary.url"
 
-          storages.build(ds_hash)
+          storage = storages.build(ds_hash)
+
+          parse_host_storages(storage, props)
+        end
+
+        def parse_host_storages(storage, props)
+          return unless props.include? "host" || props["host"].nil?
+
+          ds_ref = storage.data[:ems_ref]
+
+          props["host"].each do |datastore_host_mount|
+            host_ref  = datastore_host_mount.key._ref
+            read_only = datastore_host_mount.mountInfo.accessMode == "readOnly"
+
+            host_storages.build(
+              :host      => hosts.lazy_find(host_ref),
+              :storage   => storage,
+              :ems_ref   => ds_ref,
+              :read_only => read_only
+            )
+          end
         end
 
         def parse_distributed_virtual_portgroup(dvp, props)
@@ -192,7 +212,6 @@ module ManageIQ
 
           host = hosts.build(host_hash)
 
-          parse_host_storages(host, props)
           parse_host_operating_systems(host, props)
           parse_host_hardware(host, props)
         end

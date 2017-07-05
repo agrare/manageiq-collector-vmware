@@ -52,22 +52,6 @@ module ManageIQ
             result
           end
 
-          def parse_host_storages(host, props)
-            return unless props.include? "datastore"
-
-            props["datastore"].to_a.each do |datastore|
-              result = {
-                :host    => host,
-                :storage => storages.find_or_build(datastore._ref),
-                :ems_ref => datastore._ref,
-              }
-
-              datastore.host.to_a.detect { |mount| mount["key"] == host.data[:ems_ref] }
-
-              host_storages.build(result)
-            end
-          end
-
           def parse_host_operating_systems(host, props)
           end
 
