@@ -49,7 +49,7 @@ module ManageIQ
             :ems_ref => cluster._ref,
           }
 
-          cluster_hash[:name] = URI.decode(props["name"]) if props.include?("name")
+          cluster_hash[:name] = URI.decode_www_form_component(props["name"]) if props.include?("name")
 
           summary    = parse_cluster_summary(props)
           das_config = parse_cluster_das_config(props)
@@ -110,7 +110,7 @@ module ManageIQ
             :uid_ems => dvp._ref,
           }
 
-          lan_hash[:name] = URI.decode(props["config.name"]) if props.include? "config.name"
+          lan_hash[:name] = URI.decode_www_form_component(props["config.name"]) if props.include? "config.name"
           lan_hash[:tag]  = props["config.defaultPortConfig.vlan.vlanId"].to_s if props.include? "config.defaultPortConfig.vlan.vlanId"
 
           if props.include? "config.distributedVirtualSwitch"
@@ -129,7 +129,7 @@ module ManageIQ
             :uid_ems => dvs._ref,
           }
 
-          dvs_hash[:name] = URI.decode(props["summary.name"]) if props.include? "summary.name"
+          dvs_hash[:name] = URI.decode_www_form_component(props["summary.name"]) if props.include? "summary.name"
           dvs_hash[:switch_uuid] = props["summary.uuid"] if props.include? "summary.uuid"
           dvs_hash[:ports] = props["config.numPorts"] if props.include? "config.numPorts"
           dvs_hash[:shared] = true
@@ -169,7 +169,7 @@ module ManageIQ
           }
 
           name = props["name"]
-          folder_hash[:name] = URI.decode(name) unless name.nil?
+          folder_hash[:name] = URI.decode_www_form_component(name) unless name.nil?
 
           ems_folders.build(folder_hash)
         end
@@ -228,7 +228,7 @@ module ManageIQ
             :vapp    => vapp,
           }
 
-          rp_hash[:name] = URI.decode(props["name"]) if props.include? "name"
+          rp_hash[:name] = URI.decode_www_form_component(props["name"]) if props.include? "name"
 
           cpu_allocation    = parse_resource_pool_cpu_allocation(props)
           memory_allocation = parse_resource_pool_memory_allocation(props)

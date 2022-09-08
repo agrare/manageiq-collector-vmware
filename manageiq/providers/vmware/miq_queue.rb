@@ -44,5 +44,4 @@ class ManageIQ::Providers::Vmware::MiqQueue
     end
   end
   private_class_method :assert_options
-
 end

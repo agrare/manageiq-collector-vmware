@@ -3,15 +3,15 @@ module ManageIQ
     module Vmware
       class Collector
         module Connection
-          def connect hostname, user, password
+          def connect(hostname, user, password, port = 8989)
             vim_opts = {
               :ns       => 'urn:vim25',
-              :rev      => '4.1',
+              :rev      => '6.5',
               :host     => hostname,
               :ssl      => true,
               :insecure => true,
               :path     => '/sdk',
-              :port     => 443,
+              :port     => port,
             }
 
             RbVmomi::VIM.new(vim_opts).tap do |vim|
