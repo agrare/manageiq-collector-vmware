@@ -21,11 +21,17 @@ module ManageIQ
           @password       = password
           @counter        = 0
           @inventory_hash = Hash.new { |h, k| h[k] = {} }
-          @queue_client   = ManageIQ::Providers::Vmware::ActiveMqClient.open(true, self.class.name)
         end
 
         def run
+          # moved here to see how much time it took / if it hung
+          puts "connecting to queue"
+          @queue_client = ManageIQ::Providers::Vmware::ActiveMqClient.open(true, self.class.name)
+          puts "connecting to queue - done"
+
+          puts "connecting to ems"
           vim = connect(@hostname, @user, @password, @port)
+          puts "connecting to ems - done (rev: #{vim.rev})"
 
           wait_for_updates(vim)
         ensure
@@ -46,7 +52,9 @@ module ManageIQ
         end
 
         def wait_for_updates(vim)
+          puts "creating property filter"
           property_filter = create_property_filter(vim)
+          puts "creating property filter - done"
 
           options = RbVmomi::VIM.WaitOptions(
             :maxObjectUpdates => 50,
@@ -55,21 +63,34 @@ module ManageIQ
 
           version = ""
           while true
+            start = Time.now
             update_set = vim.propertyCollector.WaitForUpdatesEx(:version => version, :options => options)
-            next if update_set.nil?
-
-            update_set.filterSet.to_a.each do |property_filter_update|
-              next if property_filter_update.nil?
-
-              object_updates = property_filter_update.objectSet.to_a
-              next if object_updates.empty?
-
-              puts "Processing #{object_updates.count} updates..."
-              process_update_set(object_updates)
-              puts "Processing #{object_updates.count} updates...Complete"
+            finish = Time.now
+            if update_set.nil?
+              puts "No updates (#{finish - start})"
+              next
             end
 
             version = update_set.version
+            puts "update_set #{version || "ALL"}: #{update_set.filterSet.size} records (#{finish - start} seconds)"
+
+            update_set.filterSet.to_a.each do |property_filter_update|
+              if property_filter_update.nil?
+                puts "empty properties update"
+                next
+              end
+
+              object_updates = property_filter_update.objectSet.to_a
+              if object_updates.empty?
+                puts "no updates"
+                next
+              end
+              start = Time.now
+              puts "Processing #{object_updates.count} updates..."
+              process_update_set(object_updates)
+              finish = Time.now
+              puts "Processing #{object_updates.count} updates...Complete (#{finish - start})"
+            end
           end
         ensure
           property_filter.DestroyPropertyFilter unless property_filter.nil?
