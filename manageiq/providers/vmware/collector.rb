@@ -5,6 +5,7 @@ require 'manageiq/providers/vmware/miq_queue'
 require 'manageiq/providers/vmware/collector/connection'
 require 'manageiq/providers/vmware/collector/property_collector'
 
+# see ManageIQ::Providers::Vmware::InfraManager::Inventory::Collector
 module ManageIQ
   module Providers
     module Vmware
@@ -12,9 +13,10 @@ module ManageIQ
         include Connection
         include PropertyCollector
 
-        def initialize(ems_id, hostname, user, password)
+        def initialize(ems_id, hostname, port, user, password)
           @ems_id         = ems_id
           @hostname       = hostname
+          @port           = port
           @user           = user
           @password       = password
           @counter        = 0
@@ -23,12 +25,12 @@ module ManageIQ
         end
 
         def run
-          vim = connect(@hostname, @user, @password)
+          vim = connect(@hostname, @user, @password, @port)
 
           wait_for_updates(vim)
         ensure
           vim.serviceContent.sessionManager.Logout unless vim.nil?
-          @queue_client.close unless @queue_client.nil?
+          @queue_client&.close
         end
 
         private
